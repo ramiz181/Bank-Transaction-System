@@ -1,3 +1,31 @@
-export function handleUserRegister() {
+import { User } from "../models/user.model.js"
+import { generateToken } from "../services/auth.service.js"
 
+/**
+ * - POST /api/auth/register
+ * - user register controller
+ */
+export async function handleUserRegister(req, res) {
+    const { name, email, password } = req.body
+    try {
+        const isExists = await User.findOne({ email })
+        if (isExists) {
+            res.status(409).json({
+                success: false,
+                message: "User already exist"
+            })
+        }
+        const user = await User.create({ name, email, password })
+        console.log(user);
+        user.password = undefined
+        const token = generateToken(user)
+        res.cookie('token', token)
+
+        res.status(201).json({
+            success: true,
+            message: "User created successfully"
+        })
+    } catch (error) {
+        console.log(error);
+    }
 }
