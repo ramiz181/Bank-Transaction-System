@@ -32,9 +32,8 @@ userSchema.pre('save', async function () {
     this.password = await bcrypt.hash(this.password, 10)
 })
 
-
+// Mongoose instance Method - attached to individual document unlike static method which attaches to model
 userSchema.methods.comparePassword = async function (password) {
-    console.log("loggin pass", this.password);
     return await bcrypt.compare(password, this.password)
 }
 
