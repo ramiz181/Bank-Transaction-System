@@ -1,5 +1,6 @@
 import { User } from "../models/user.model.js"
 import { generateToken } from "../services/auth.service.js"
+import { sendRegistrationEmail } from "../services/email.service.js"
 
 /**
  * - POST /api/auth/register
@@ -16,7 +17,6 @@ export async function handleUserRegister(req, res) {
             })
         }
         const user = await User.create({ name, email, password })
-        console.log(user);
         user.password = undefined
         const token = generateToken(user)
         res.cookie('token', token)
@@ -25,6 +25,8 @@ export async function handleUserRegister(req, res) {
             success: true,
             message: "User created successfully"
         })
+
+        await sendRegistrationEmail(user.email, user.name)
     } catch (error) {
         console.log(error);
     }
