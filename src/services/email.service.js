@@ -3,11 +3,17 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
+
+// ye func SMTP connection ko configure krta h
+// helps in send message to smtp server
 const transporter = nodemailer.createTransport({
     // host: 'smtp.gmail.com',
     // port: 465,
     // secure: true,
-    service: 'gmail',
+    service: 'gmail',   // when using 'service' as 'gmail' --- nodemailer automaticlly maps: 
+    // smtp.gmail.com
+    // port 465
+    // secure true
     auth: {
         // user: process.env.EMAIL_USER,
         // pass: process.env.EMAIL_PASS
@@ -21,7 +27,7 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
     if (error) {
         console.log(`Error connecting to mail server ${error}`);
-        throw new Error
+        throw new Error(error.message)
     }
     else {
         console.log(`Email server connected to send message ${success}`);
