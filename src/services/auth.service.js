@@ -4,8 +4,6 @@ export const generateToken = (user) => {
 
     return jwt.sign({
         UserId: user._id,
-        name: user.name,
-        email: user.email
     }, process.env.JWT_SECRET,
         { expiresIn: '3d' }
     )
