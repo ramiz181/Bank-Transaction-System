@@ -10,9 +10,8 @@ dbConnection()
 
 const PORT = 8001
 
-app.get('/email', (req, res) => {
-    sendRegistrationEmail('ramizmalik18121@gmail.com', 'Meekal')
-    res.send('email sent')
+app.get('/', (req, res) => {
+    res.send('testing')
 })
 
 app.listen(PORT, () => console.log(`Server started at PORT: ${PORT}`))
