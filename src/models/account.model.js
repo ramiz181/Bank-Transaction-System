@@ -5,23 +5,28 @@ const accountSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: [true, 'Account must be associated with a user'],
-        index: true
+    },
+    accountNumber: {
+        type: String,
+        required: true,
+        unique: true
     },
     status: {
+        type: String,
         enum: {
-            values: ['Active', 'Frozen', 'Closed'],
+            values: ['ACTIVE', 'FROZEN', 'CLOSED'],
             message: 'Status canbe either Active, Frozen, Closed'
         },
-
-        currency: {
-            type: String,
-            default: 'PKR',
-            required: [true, 'Currenct is required for creating an account']
-        }
+        default: 'ACTIVE'
+    },
+    currency: {
+        type: String,
+        default: 'PKR',
+        required: [true, 'Currenct is required for creating an account']
     }
 }, { timestamps: true })
 
 // compound index
 accountSchema.index({ user: 1, status: 1 })
 
-export default Account = mongoose.model('Account', accountSchema)
+export const Account = mongoose.model('Account', accountSchema)

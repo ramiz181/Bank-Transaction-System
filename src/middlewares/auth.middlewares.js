@@ -1,9 +1,10 @@
-import userModel from "../models/user.model.js"
+import { User } from "../models/user.model.js"
 import { verifyToken } from "../services/auth.service.js"
 
-export const authentication = (req, res, next) => {
+export const authentication = async (req, res, next) => {
     try {
-        const token = req.cookies?.token || req.headers?.authorization.split(' ')[1]
+        const token = req.cookies?.token
+
         if (!token) {
             return res.status(401).json({
                 success: false,
@@ -13,7 +14,7 @@ export const authentication = (req, res, next) => {
         const decoded = verifyToken(token)
         console.log("decoded token ", decoded);
 
-        const user = userModel.findById(decoded)
+        const user = await User.findById(decoded.UserId)
         req.user = user
         next()
     } catch (error) {
