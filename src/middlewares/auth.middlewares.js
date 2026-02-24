@@ -1,11 +1,14 @@
-import { verifyToken } from "../services/auth.service.js"
+export const authentication = (req, res, next) => {
+    try {
+        const token = req.cookies?.token
 
-const authentication = (req, res, next) => {
-    const token = req.cookies?.token
+        if (!token) return res.status(401).json({ message: 'Unauthorized user, token missing' })
 
-    if (!token) res.redirect('/api/auth/login?error=please login')
-    const user = verifyToken(token)
-    if (!user) res.status(401).redirect('/api/auth/login?error=unauthorize user')
-    req.user = user
-    next()
+        const decoded = verifyToken(token)
+        req.user = decoded
+        next()
+
+    } catch (error) {
+        return res.status(401).json({ message: 'Unauthorized user, token invalid or expired' })
+    }
 }

@@ -2,8 +2,9 @@ import jwt from 'jsonwebtoken'
 
 export const generateToken = (user) => {
 
-    jwt.sign({
+    return jwt.sign({
         UserId: user._id,
+        name: user.name,
         email: user.email
     }, process.env.JWT_SECRET,
         { expiresIn: '3d' }
@@ -11,9 +12,5 @@ export const generateToken = (user) => {
 }
 
 export const verifyToken = (token) => {
-    try {
-        return jwt.verify(token, process.env.JWT_SECRET)
-    } catch (error) {
-        console.error('JWT verification error')
-    }
+    return jwt.verify(token, process.env.JWT_SECRET)
 }
