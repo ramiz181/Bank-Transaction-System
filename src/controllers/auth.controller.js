@@ -19,9 +19,8 @@ export async function handleUserRegister(req, res) {
         const user = await User.create({ name, email, password })
         user.password = undefined
         const token = generateToken(user)
-        res.cookie('token', token)
-
-        res.status(201).json({
+        
+        res.cookie('token', token).status(201).json({
             success: true,
             message: "User created successfully"
         })
