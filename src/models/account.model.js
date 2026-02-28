@@ -6,11 +6,11 @@ const accountSchema = new mongoose.Schema({
         ref: 'User',
         required: [true, 'Account must be associated with a user'],
     },
-    accountNumber: {
-        type: String,
-        required: true,
-        unique: true
-    },
+    // accountNumber: {
+    //     type: String,
+    //     required: true,
+    //     unique: true
+    // },
     status: {
         type: String,
         enum: {

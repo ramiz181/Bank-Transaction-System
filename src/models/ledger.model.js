@@ -49,6 +49,7 @@ ledgerSchema.pre('deleteMany', preventLedgerModification)
 ledgerSchema.pre('deleteOne', preventLedgerModification)
 ledgerSchema.pre('findByIdAndUpdate', preventLedgerModification)
 ledgerSchema.pre('findByIdAndDelete', preventLedgerModification)
+ledgerSchema.pre('findOneAndReplace', preventLedgerModification)
 ledgerSchema.pre('remove', preventLedgerModification);
 
 // explicitly doing this cuz
@@ -58,6 +59,8 @@ ledgerSchema.pre('remove', preventLedgerModification);
 // entry.save()  ==> this will still work
 
 ledgerSchema.pre('save', function (next) {
+
+    console.log("isNew ====>>> ", !this.isNew);
     if (!this.isNew) {
         return next(new Error('Ledger entries are immutable and cannot be modified'));
     }
