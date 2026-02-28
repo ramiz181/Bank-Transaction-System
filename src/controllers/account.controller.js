@@ -17,7 +17,7 @@ export const createAccountController = async (req, res) => {
         }
 
         // Generating account number
-        // const accountNumber = `AC-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+        // const accountNumber =`AC-${Date.now()}-${Math.floor(Math.random() * 1000)}`
 
         const account = await Account.create({
             user: user._id,

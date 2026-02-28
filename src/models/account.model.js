@@ -6,7 +6,7 @@ const accountSchema = new mongoose.Schema({
         ref: 'User',
         required: [true, 'Account must be associated with a user'],
     },
-    // accountNumber: {
+    // accountNumber:{
     //     type: String,
     //     required: true,
     //     unique: true
