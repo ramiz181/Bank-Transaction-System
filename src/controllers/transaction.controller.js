@@ -1,4 +1,5 @@
 import { Account } from "../models/account.model.js"
+import { Transaction } from "../models/transaction.model.js"
 
 /**
  * - create a new transaction 
@@ -29,6 +30,46 @@ export async function createTransactionController(req, res) {
     if (!fromUserAccount || !toUserAccount) {
         return res.status(400).json({
             message: "Invalid fromAccount or/and toAccount"
+        })
+    }
+
+    /**
+        2. validate idempotency key
+     */
+
+    const existingTransaction = await Transaction.findOne({ idempotencyKey })
+
+
+    if (existingTransaction) {
+        if (existingTransaction.status === 'PENDING') {
+            return res.status(202).json({
+                error: 'Request is already being processed'
+            })
+        }
+        // COMPLETED FAILED REVERSED
+        else if (existingTransaction.status === 'COMPLETED') {
+            return res.status(200).json({
+                message: 'Transaction already processed',
+                transation: existingTransaction
+            })
+        }
+        else if (existingTransaction.status === 'FAILED') {
+            return res.status(500).json({
+                message: 'Transaction processing failed, please retry'
+            })
+        }
+        else if (existingTransaction.status === 'REVERSED') {
+            return res.status(500).json({
+                message: 'Transaction has been undone, please retry'
+            })
+        }
+    }
+    /**
+        * 3. check account status
+    */
+    if (fromUserAccount.status !== 'ACTIVE' || toUserAccount.status !== 'ACTIVE') {
+        return res.status(400).json({
+            error: "Both fromAccount & toAccount must be 'ACTIVE' to proceed transaction"
         })
     }
 }
