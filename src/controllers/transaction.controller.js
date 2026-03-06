@@ -35,7 +35,7 @@ export async function createTransactionController(req, res) {
 
     /**
         2. validate idempotency key
-     */
+    */
 
     const existingTransaction = await Transaction.findOne({ idempotencyKey })
 
@@ -46,7 +46,6 @@ export async function createTransactionController(req, res) {
                 error: 'Request is already being processed'
             })
         }
-        // COMPLETED FAILED REVERSED
         else if (existingTransaction.status === 'COMPLETED') {
             return res.status(200).json({
                 message: 'Transaction already processed',
@@ -55,12 +54,12 @@ export async function createTransactionController(req, res) {
         }
         else if (existingTransaction.status === 'FAILED') {
             return res.status(500).json({
-                message: 'Transaction processing failed, please retry'
+                error: 'Transaction processing failed, please retry'
             })
         }
         else if (existingTransaction.status === 'REVERSED') {
             return res.status(500).json({
-                message: 'Transaction has been undone, please retry'
+                error: 'Transaction has been undone, please retry'
             })
         }
     }
