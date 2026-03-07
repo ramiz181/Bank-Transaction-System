@@ -71,4 +71,9 @@ export async function createTransactionController(req, res) {
             error: "Both fromAccount & toAccount must be 'ACTIVE' to proceed transaction"
         })
     }
+
+    /**
+     * 4. derive sender balance form ledger
+    */
+   
 }

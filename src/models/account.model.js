@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Ledger } from "./ledger.model.js";
 
 const accountSchema = new mongoose.Schema({
     user: {
@@ -28,5 +29,26 @@ const accountSchema = new mongoose.Schema({
 
 // compound index
 accountSchema.index({ user: 1, status: 1 })
+
+accountSchema.methods.getBalance = async function () {
+    const balance = await Ledger.aggregate([
+        { $match: { account: this._id } },
+        {
+            $group: {
+                _id: "$account",
+                balance: {
+                    $sum: {
+                        $cond: [
+                            {
+                                $eq: ["$transactionType", "DEBIT"],
+                                "$amount",
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ])
+}
 
 export const Account = mongoose.model('Account', accountSchema)

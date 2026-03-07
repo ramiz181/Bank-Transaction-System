@@ -65,3 +65,74 @@ export const sendRegistrationEmail = async (userEmail, name) => {
 
     await sendEmail(userEmail, subject, null, html)
 }
+
+export const sendTransactionEmail = async (userEmail, name, amount, receiver, transactionId) => {
+
+    const subject = "Bank Transaction System — Transaction Successful ✅";
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <h2>Hello ${name} 👋</h2>
+            <p>Your transaction was completed successfully.</p>
+            <h3 style="margin-top:20px;">Transaction Details</h3>
+            <table style="border-collapse: collapse;">
+                <tr>
+                    <td><strong>Transaction ID:</strong></td>
+                    <td>${transactionId}</td>
+                </tr>
+                <tr>
+                    <td><strong>Amount:</strong></td>
+                    <td>$${amount}</td>
+                </tr>
+                <tr>
+                    <td><strong>Receiver:</strong></td>
+                    <td>${receiver}</td>
+                </tr>
+            </table>
+            <br/>
+            <p>If you did not perform this transaction, please contact support immediately.</p>
+            <br/>
+            <p><strong>— Ramiz</strong></p>
+        </div>
+    `;
+
+    await sendEmail(userEmail, subject, null, html);
+};
+
+export const sendTransactionFailEmail = async (
+    userEmail,
+    name,
+    amount,
+    receiver,
+    reason
+) => {
+
+    const subject = "Bank Transaction System — Transaction Failed ❌";
+
+    const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <h2>Hello ${name} 👋</h2>
+            <p>Unfortunately, your recent transaction could not be completed.</p>
+            <h3 style="margin-top:20px;">Transaction Details</h3>
+            <table style="border-collapse: collapse;">
+                <tr>
+                    <td><strong>Amount:</strong></td>
+                    <td>$${amount}</td>
+                </tr>
+                <tr>
+                    <td><strong>Receiver:</strong></td>
+                    <td>${receiver}</td>
+                </tr>
+                <tr>
+                    <td><strong>Reason:</strong></td>
+                    <td>${reason}</td>
+                </tr>
+            </table>
+            <br/>
+            <p>Please try again or contact support if the issue persists.</p>
+            <br/>
+            <p><strong>— Ramiz</strong></p>
+        </div>
+    `;
+    await sendEmail(userEmail, subject, null, html);
+};

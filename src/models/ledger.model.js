@@ -59,8 +59,6 @@ ledgerSchema.pre('remove', preventLedgerModification);
 // entry.save()  ==> this will still work
 
 ledgerSchema.pre('save', function (next) {
-
-    console.log("isNew ====>>> ", !this.isNew);
     if (!this.isNew) {
         return next(new Error('Ledger entries are immutable and cannot be modified'));
     }
