@@ -9,6 +9,6 @@ const router = express.Router()
  * - create new account
  * - protected route
  */
-router.post('/', authentication, createAccountController)
+router.post('/create', authentication, createAccountController)
 
 export default router

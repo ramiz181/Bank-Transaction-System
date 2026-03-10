@@ -8,10 +8,6 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser())
 
-app.get('/', (req, res) => {
-    res.send('homepage')
-})
-
 app.use('/api/auth', authRoutes)
 app.use('/api/account', accountRoutes)
 app.use('/api/transaction', transactionRoutes)

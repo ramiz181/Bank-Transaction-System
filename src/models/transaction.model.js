@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { createRef } from "react";
 
 const transactionSchema = new mongoose.Schema({
     fromAccount: {
