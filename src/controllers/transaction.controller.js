@@ -1,6 +1,9 @@
+import mongoose from "mongoose"
 import { Account } from "../models/account.model.js"
 import { Transaction } from "../models/transaction.model.js"
 import { User } from "../models/user.model.js"
+import { Ledger } from "../models/ledger.model.js"
+import { sendTransactionEmail } from "../services/email.service.js"
 
 /**
  * - create a new transaction 
@@ -105,10 +108,65 @@ export async function createTransactionController(req, res) {
         /**
          * 4. derive sender balance form ledger
         */
-
         const balance = await fromUserAccount.getBalance()
+        if (balance < amount) {
+            return res.status(400).json({
+                success: false,
+                error: `Insufficient balance, Current balance is ${balance}. Requested amount is ${amount}`
+            })
+        }
 
-        res.send('transaction done...')
+        const session = await mongoose.startSession()
+        session.startTransaction()
+
+        /**
+         *  5. create transaction (PENDING)
+        */
+        const transaction = await Transaction.create({
+            fromAccount,
+            toAccount,
+            status: 'PENDING',
+            amount,
+            idempotencyKey,
+        }, { session })
+
+        /**
+         *  6. create DEBIT ledger entry
+        *   7. create CREDIT ledger entry
+        *   8. mark transaction COMPLETED
+        */
+        const debitLedgerEntry = await Ledger.create({
+            account: fromAccount,
+            transactionType: 'DEBIT',
+            transactionID: transaction._id,
+            amount,
+        }, { session })
+
+        const creditLedgerEntry = await Ledger.create({
+            account: toAccount,
+            transactionType: 'CREDIT',
+            transactionID: transaction._id,
+            amount,
+        })
+
+        transaction.status = 'COMPLETED'
+        await transaction.save({ session })
+
+        /**
+         * 9. commit mongoDB session
+        */
+        await session.commitTransaction()
+        session.endSession
+
+        /**
+         * 10. send email notification
+        */
+        sendTransactionEmail(req.user.email, req.user.name, amount, toAccount, transaction._id)
+
+        res.status(201).json({
+            success: true,
+            message: "Transaction completed successfully"
+        })
     } catch (error) {
         console.error("Transaction Error:", error)
         return res.status(500).json({
