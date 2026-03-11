@@ -109,12 +109,12 @@ export async function createTransactionController(req, res) {
          * 4. derive sender balance form ledger
         */
         const balance = await fromUserAccount.getBalance()
-        if (balance < amount) {
-            return res.status(400).json({
-                success: false,
-                error: `Insufficient balance, Current balance is ${balance}. Requested amount is ${amount}`
-            })
-        }
+        // if (balance < amount) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         error: `Insufficient balance, Current balance is ${balance}. Requested amount is ${amount}`
+        //     })
+        // }
 
         const session = await mongoose.startSession()
         session.startTransaction()
@@ -122,41 +122,41 @@ export async function createTransactionController(req, res) {
         /**
          *  5. create transaction (PENDING)
         */
-        const transaction = await Transaction.create({
-            fromAccount,
-            toAccount,
+        const transaction = await Transaction.create([{
+            fromAccount: fromUserAccount._id,
+            toAccount: toUserAccount._id,
             status: 'PENDING',
             amount,
             idempotencyKey,
-        }, { session })
+        }], { session })
 
         /**
          *  6. create DEBIT ledger entry
         *   7. create CREDIT ledger entry
         *   8. mark transaction COMPLETED
         */
-        const debitLedgerEntry = await Ledger.create({
-            account: fromAccount,
+        const debitLedgerEntry = await Ledger.create([{
+            account: fromUserAccount._id,
             transactionType: 'DEBIT',
-            transactionID: transaction._id,
+            transactionID: transaction[0]._id,
             amount,
-        }, { session })
+        }], { session })
 
-        const creditLedgerEntry = await Ledger.create({
-            account: toAccount,
+        const creditLedgerEntry = await Ledger.create([{
+            account: toUserAccount._id,
             transactionType: 'CREDIT',
-            transactionID: transaction._id,
+            transactionID: transaction[0]._id,
             amount,
-        })
+        }], { session })
 
-        transaction.status = 'COMPLETED'
-        await transaction.save({ session })
+        transaction[0].status = 'COMPLETED'
+        await transaction[0].save({ session })
 
         /**
          * 9. commit mongoDB session
         */
         await session.commitTransaction()
-        session.endSession
+        session.endSession()
 
         /**
          * 10. send email notification

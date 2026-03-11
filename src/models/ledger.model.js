@@ -58,11 +58,10 @@ ledgerSchema.pre('remove', preventLedgerModification);
 // entry.amount = 200
 // entry.save()  ==> this will still work
 
-ledgerSchema.pre('save', function (next) {
+ledgerSchema.pre('save', function () {
     if (!this.isNew) {
         return next(new Error('Ledger entries are immutable and cannot be modified'));
     }
-    next();
 });
 
 
