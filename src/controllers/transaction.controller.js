@@ -92,6 +92,7 @@ export async function createTransactionController(req, res) {
         ])
         if (!fromUserAccount || !toUserAccount) {
             return res.status(400).json({
+                success: false,
                 message: "Invalid fromAccount or/and toAccount"
             })
         }
@@ -109,12 +110,12 @@ export async function createTransactionController(req, res) {
          * 4. derive sender balance form ledger
         */
         const balance = await fromUserAccount.getBalance()
-        // if (balance < amount) {
-        //     return res.status(400).json({
-        //         success: false,
-        //         error: `Insufficient balance, Current balance is ${balance}. Requested amount is ${amount}`
-        //     })
-        // }
+        if (balance < amount) {
+            return res.status(400).json({
+                success: false,
+                error: `Insufficient balance, Current balance is ${balance}. Requested amount is ${amount}`
+            })
+        }
 
         const session = await mongoose.startSession()
         session.startTransaction()
@@ -166,6 +167,78 @@ export async function createTransactionController(req, res) {
         res.status(201).json({
             success: true,
             message: "Transaction completed successfully"
+        })
+    } catch (error) {
+        console.error("Transaction Error:", error)
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        })
+    }
+}
+
+
+export async function createInitialFundTransaction(req, res) {
+    const { toAccount, amount, idempotencyKey } = req.body
+    try {
+        if (!toAccount || !amount || !idempotencyKey) {
+            return res.status(400).json({
+                message: "fromAccount toAccount amount idempotencyKey are required"
+            })
+        }
+
+        const to = await User.findOne({ email: toAccount })
+        const toUserAccount = await Account.findOne({ user: to._id })
+
+        if (!toUserAccount) {
+            return res.status(400).json({
+                success: false,
+                error: "Invalid toAccount"
+            })
+        }
+        const systemUserAccount = await Account.findOne({ user: req.user._id })
+        // possibly a dead code, but incase...
+        if (!systemUserAccount) {
+            return res.status(400).json({
+                success: false,
+                error: "System User account not found"
+            })
+        }
+
+        const session = await mongoose.startSession()
+        session.startTransaction()
+
+        const transaction = await Transaction.create([{
+            fromAccount: systemUserAccount._id,
+            toAccount: toUserAccount._id,
+            amount,
+            idempotencyKey,
+        }], { session })
+
+        const debitLedgerEntry = await Ledger.create([{
+            account: systemUserAccount._id,
+            transactionType: 'DEBIT',
+            transactionID: transaction[0]._id,
+            amount,
+        }], { session })
+
+        const creditLedgerEntry = await Ledger.create([{
+            account: toUserAccount._id,
+            transactionType: 'CREDIT',
+            transactionID: transaction[0]._id,
+            amount,
+        }], { session })
+
+        transaction[0].status = 'COMPLETED'
+        await transaction[0].save({ session })
+
+        await session.commitTransaction()
+        session.endSession()
+
+        res.status(201).json({
+            success: true,
+            message: "Initial funds transaction completed successfully",
+            transaction: transaction[0]
         })
     } catch (error) {
         console.error("Transaction Error:", error)
