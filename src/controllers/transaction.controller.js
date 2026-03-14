@@ -28,7 +28,7 @@ export async function createTransactionController(req, res) {
                 message: "fromAccount toAccount amount idempotencyKey are required"
             })
         }
-        if (req.user.email !== toAccount) {
+        if (req.user.email !== fromAccount) {
             return res.status(403).json({
                 success: false,
                 message: "Unauthorized: fromAccount must match logged-in user"
@@ -189,13 +189,7 @@ export async function createInitialFundTransaction(req, res) {
     try {
         if (!toAccount || !amount || !idempotencyKey) {
             return res.status(400).json({
-                message: "fromAccount toAccount amount idempotencyKey are required"
-            })
-        }
-        if (req.user.email !== toAccount) {
-            return res.status(403).json({
-                success: false,
-                message: "Unauthorized: fromAccount must match logged-in user"
+                message: "toAccount amount idempotencyKey are required"
             })
         }
         const to = await User.findOne({ email: toAccount })
@@ -208,12 +202,45 @@ export async function createInitialFundTransaction(req, res) {
             })
         }
         const systemUserAccount = await Account.findOne({ user: req.user._id })
-        // possibly a dead code, but incase...
+        // possibly a dead code cuz already handled by middleware, but incase...
         if (!systemUserAccount) {
             return res.status(400).json({
                 success: false,
                 error: "System User account not found"
             })
+        }
+
+        if (req.user.email === toAccount) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot transfer to the same account"
+            })
+        }
+
+        const existingTransaction = await Transaction.findOne({ idempotencyKey })
+
+        if (existingTransaction) {
+            if (existingTransaction.status === 'PENDING') {
+                return res.status(202).json({
+                    error: 'Request is already being processed'
+                })
+            }
+            else if (existingTransaction.status === 'COMPLETED') {
+                return res.status(200).json({
+                    message: 'Transaction already processed',
+                    transation: existingTransaction
+                })
+            }
+            else if (existingTransaction.status === 'FAILED') {
+                return res.status(500).json({
+                    error: 'Transaction processing failed, please retry'
+                })
+            }
+            else if (existingTransaction.status === 'REVERSED') {
+                return res.status(500).json({
+                    error: 'Transaction has been undone, please retry'
+                })
+            }
         }
 
         const session = await mongoose.startSession()

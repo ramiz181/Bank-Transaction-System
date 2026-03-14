@@ -23,7 +23,7 @@ export async function handleUserRegister(req, res) {
         res.cookie('token', token, {
             httpOnly: true,
             secure: false,
-            samesite: 'none'
+            sameSite: 'none'
         }).status(201).json({
             success: true,
             message: "User created successfully"
@@ -52,7 +52,11 @@ export async function handleUserLogin(req, res) {
         }
 
         const token = generateToken(user)
-        res.cookie('token', token)
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'none'
+        })
 
         res.status(200).json({
             success: true,
