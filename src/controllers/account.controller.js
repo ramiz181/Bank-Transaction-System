@@ -8,7 +8,7 @@ export const createAccountController = async (req, res) => {
 
         const existingAccount = await Account.findOne({ user: user._id })
         console.log(existingAccount);
-        
+
         if (existingAccount) {
             return res.status(409).json({
                 success: false,
@@ -35,4 +35,26 @@ export const createAccountController = async (req, res) => {
             message: 'Internal server error'
         })
     }
+}
+
+export const accountBalanceController = async (req, res) => {
+
+    const accountID = req.params.accountId
+
+    const account = await Account.findOne({
+        _id: accountID,
+        user: req.user._id  
+    })
+    if (!account) {
+        return res.status(404).json({
+            success: false,
+            error: "Account not found"
+        })
+    }
+    const balance = await account.getBalance()
+    return res.status(200).json({
+        success: true,
+        accountID,
+        balance
+    })
 }
