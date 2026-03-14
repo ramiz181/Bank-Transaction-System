@@ -28,6 +28,12 @@ export async function createTransactionController(req, res) {
                 message: "fromAccount toAccount amount idempotencyKey are required"
             })
         }
+        if (req.user.email !== toAccount) {
+            return res.status(403).json({
+                success: false,
+                message: "Unauthorized: fromAccount must match logged-in user"
+            })
+        }
         if (amount <= 0) {
             return res.status(400).json({
                 success: false,
@@ -186,7 +192,12 @@ export async function createInitialFundTransaction(req, res) {
                 message: "fromAccount toAccount amount idempotencyKey are required"
             })
         }
-
+        if (req.user.email !== toAccount) {
+            return res.status(403).json({
+                success: false,
+                message: "Unauthorized: fromAccount must match logged-in user"
+            })
+        }
         const to = await User.findOne({ email: toAccount })
         const toUserAccount = await Account.findOne({ user: to._id })
 
