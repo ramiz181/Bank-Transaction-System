@@ -123,47 +123,51 @@ export async function createTransactionController(req, res) {
             })
         }
 
-        const session = await mongoose.startSession()
-        session.startTransaction()
-
         /**
          *  5. create transaction (PENDING)
         */
-        const transaction = await Transaction.create([{
+        let transaction = await Transaction.create({
             fromAccount: fromUserAccount._id,
             toAccount: toUserAccount._id,
             status: 'PENDING',
             amount,
             idempotencyKey,
-        }], { session })
+        })
 
         /**
          *  6. create DEBIT ledger entry
         *   7. create CREDIT ledger entry
         *   8. mark transaction COMPLETED
+        *   9. commit mongoDB session (withTransaction auto commit/abort the session)
         */
-        const debitLedgerEntry = await Ledger.create([{
-            account: fromUserAccount._id,
-            transactionType: 'DEBIT',
-            transactionID: transaction[0]._id,
-            amount,
-        }], { session })
+        const session = await mongoose.startSession()
 
-        const creditLedgerEntry = await Ledger.create([{
-            account: toUserAccount._id,
-            transactionType: 'CREDIT',
-            transactionID: transaction[0]._id,
-            amount,
-        }], { session })
+        try {
 
-        transaction[0].status = 'COMPLETED'
-        await transaction[0].save({ session })
+            await session.withTransaction(async () => {
+                await Ledger.create([{
+                    account: fromUserAccount._id,
+                    transactionType: 'DEBIT',
+                    transactionID: transaction._id,
+                    amount,
+                }], { session })
 
-        /**
-         * 9. commit mongoDB session
-        */
-        await session.commitTransaction()
-        session.endSession()
+                await new Promise(resolve => setTimeout(resolve, 15000))
+
+                await Ledger.create([{
+                    account: toUserAccount._id,
+                    transactionType: 'CREDIT',
+                    transactionID: transaction._id,
+                    amount,
+                }], { session })
+
+                transaction.status = 'COMPLETED'
+                await transaction.save({ session })
+            })
+
+        } finally {
+            session.endSession()
+        }
 
         /**
          * 10. send email notification
@@ -182,7 +186,6 @@ export async function createTransactionController(req, res) {
         })
     }
 }
-
 
 export async function createInitialFundTransaction(req, res) {
     const { toAccount, amount, idempotencyKey } = req.body

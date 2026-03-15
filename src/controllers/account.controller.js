@@ -43,8 +43,9 @@ export const accountBalanceController = async (req, res) => {
 
     const account = await Account.findOne({
         _id: accountID,
-        user: req.user._id  
-    })
+        user: req.user._id
+    }).populate('user')
+
     if (!account) {
         return res.status(404).json({
             success: false,
@@ -54,6 +55,7 @@ export const accountBalanceController = async (req, res) => {
     const balance = await account.getBalance()
     return res.status(200).json({
         success: true,
+        email: account.user.email,
         accountID,
         balance
     })

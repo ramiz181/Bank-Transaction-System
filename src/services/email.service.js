@@ -27,7 +27,7 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
     if (error) {
         console.log(`Error connecting to mail server ${error}`);
-        throw new Error(error.message)
+        // throw new Error(error.message)
     }
     else {
         console.log(`Email server connected to send message ${success}`);
