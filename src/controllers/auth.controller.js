@@ -1,3 +1,4 @@
+import { TokenBlacklist } from "../models/blacklist.model.js"
 import { User } from "../models/user.model.js"
 import { generateToken } from "../services/auth.service.js"
 import { sendRegistrationEmail } from "../services/email.service.js"
@@ -65,4 +66,25 @@ export async function handleUserLogin(req, res) {
     } catch (error) {
         console.log(error);
     }
+}
+/**
+ * - user logout controller
+ * - POST api/auth/logout
+ */
+export async function handleUserLogout(req, res) {
+
+    const token = req.cookies?.token
+    if (!token) {
+        return res.status(200).json({
+            success: true,
+            message: 'User already logged out'
+        })
+    }
+    await TokenBlacklist.create({ token })
+    res.clearCookie("token")
+
+    return res.json({
+        success: true,
+        message: "Logged out successfully"
+    })
 }

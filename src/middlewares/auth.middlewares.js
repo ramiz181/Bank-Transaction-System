@@ -1,3 +1,4 @@
+import { TokenBlacklist } from "../models/blacklist.model.js"
 import { User } from "../models/user.model.js"
 import { verifyToken } from "../services/auth.service.js"
 
@@ -9,6 +10,13 @@ export const authentication = async (req, res, next) => {
             return res.status(401).json({
                 success: false,
                 message: "Unauthorized user, token missing"
+            })
+        }
+        const blacklisted = await TokenBlacklist.findOne({ token })
+        if (blacklisted) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized user, token expired"
             })
         }
         const decoded = verifyToken(token)
@@ -31,6 +39,13 @@ export const authSystemUser = async (req, res, next) => {
             return res.status(401).json({
                 success: false,
                 message: "Unauthorized user, token missing"
+            })
+        }
+        const blacklisted = await TokenBlacklist.findOne({ token })
+        if (blacklisted) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized user, token expired"
             })
         }
         const decoded = verifyToken(token)
