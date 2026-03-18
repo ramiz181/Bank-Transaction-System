@@ -35,7 +35,7 @@ accounts.
 
 -   User registration and login
 -   JWT based authentication
--   Secure cookies for session handling
+-   Secure cookies
 
 ## Account Management
 
@@ -48,15 +48,15 @@ Implements a **multi-step transfer flow** to ensure reliability.
 
 Transaction flow includes:
 
-1.  Request validation\
-2.  Idempotency key validation\
-3.  Account status validation\
-4.  Balance derivation from ledger\
-5.  Transaction creation (PENDING)\
-6.  Debit ledger entry\
-7.  Credit ledger entry\
-8.  Update transaction status\
-9.  Commit database transaction\
+1.  Request validation
+2.  Idempotency key validation
+3.  Account status validation
+4.  Balance derivation from ledger
+5.  Transaction creation (PENDING)
+6.  Debit ledger entry
+7.  Credit ledger entry
+8.  Update transaction status
+9.  Commit database transaction
 10. Return response
 
 ------------------------------------------------------------------------
@@ -78,16 +78,75 @@ This ensures:
 -   Auditability
 -   Data integrity
 
-------------------------------------------------------------------------
+## MongoDB Aggregation Pipeline
+
+Account balances and transaction insights are computed using the MongoDB Aggregation Pipeline, rather than storing redundant data.
+
+Example use cases:
+
+-   Calculating real-time account balance
+-   Summing debit and credit entries
+-   Filtering and grouping transaction data
+
+Example concept:
+
+```js
+accountSchema.methods.getBalance = async function () {
+    const balanceData = await Ledger.aggregate([
+        { $match: { account: this._id } },
+        {
+            $group: {
+                _id: null,
+                totalDebit: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ['$transactionType', 'DEBIT'] },
+                            "$amount",
+                            0
+                        ],
+                    }
+                },
+                totalCredit: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ['$transactionType', 'CREDIT'] },
+                            '$amount',
+                            0
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                balance: { $subtract: ['$totalCredit', '$totalDebit'] }
+            }
+        }
+    ])
+    if (balanceData.length == 0) {
+        return 0
+    }
+    return balanceData[0].balance
+}
+```
+
+This ensures:
+
+-  Real-time balance computation
+-  No redundant balance storage
+-  High data consistency
+-  Powerful data querying and analytics
 
 ## MongoDB Transactions
 
 MongoDB sessions are used to ensure **atomic money transfers**.
 
 Example:
-
-const session = await mongoose.startSession() session.startTransaction()
-
+```js
+const session = await mongoose.startSession()
+session.startTransaction()
+```
 This ensures that:
 
 -   Either the entire transaction succeeds
