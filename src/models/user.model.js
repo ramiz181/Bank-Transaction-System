@@ -1,6 +1,15 @@
 import mongoose from "mongoose";
 import bcrypt from 'bcrypt'
 
+const refreshTokenSchema = new mongoose.Schema({
+    token: {
+        type: String,
+    },
+    expiresAt: {
+        type: Date,
+    }
+}, { timestamps })
+
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -25,13 +34,14 @@ const userSchema = new mongoose.Schema({
         default: false,
         select: false,
         immutable: true
-    }
+    },
+    refrestTokens: [refreshTokenSchema]
 }, { timestamps: true })
 
 
 
 userSchema.pre('save', async function () {
-    // if isModified method not use - to jub bhe document save hoga har dfa pas hash hogay
+    // if isModified method not use - to jub bhe document save hoga har dfa phr hash hogay
     // e.g 1st time hash(password)
     // 2nd time hash(hash(password))
     if (!this.isModified('password')) return
