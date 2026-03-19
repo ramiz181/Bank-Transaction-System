@@ -7,8 +7,12 @@ const refreshTokenSchema = new mongoose.Schema({
     },
     expiresAt: {
         type: Date,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
     }
-}, { timestamps })
+})
 
 const userSchema = new mongoose.Schema({
     name: {

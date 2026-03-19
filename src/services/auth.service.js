@@ -16,7 +16,6 @@ export const generateAccessToken = (user) => {
 /**
  * Generate Refresh Token (short-lived)
  */
-
 export const generateRefreshToken = () => {
     const jti = uuidv4()
     return {
@@ -30,5 +29,5 @@ export const generateRefreshToken = () => {
 }
 
 export const verifyToken = (token) => {
-    return jwt.verify(token, process.env.JWT_SECRET)
+    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
 }
