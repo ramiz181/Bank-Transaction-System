@@ -5,12 +5,14 @@ const refreshTokenSchema = new mongoose.Schema({
     token: {
         type: String,
     },
+    // manually expire set krty hen, kbhi agr JWT exipre sy phly session exipre krna ho to
+    // production level - best practice
     expiresAt: {
         type: Date,
     },
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now()
     }
 })
 
@@ -39,7 +41,11 @@ const userSchema = new mongoose.Schema({
         select: false,
         immutable: true
     },
-    refrestTokens: [refreshTokenSchema]
+    refreshTokens: [refreshTokenSchema],
+    sessionExpiresAt: {
+        type: Date,
+        default: () => Date.now() + 3 * 60 * 1000
+    }
 }, { timestamps: true })
 
 

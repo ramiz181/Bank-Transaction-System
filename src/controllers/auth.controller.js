@@ -25,9 +25,9 @@ export async function handleUserRegister(req, res) {
         const accessToken = generateAccessToken(user)
         const { token: refreshToken } = generateRefreshToken()
 
-        user.refrestTokens.push({
+        user.refreshTokens.push({
             token: refreshToken,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            // expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         })
         await user.save()
         setAuthCookies(res, accessToken, refreshToken)
@@ -62,10 +62,11 @@ export async function handleUserLogin(req, res) {
         // destructuring 'token' and rename it to 'refreshToken'
         const { token: refreshToken } = generateRefreshToken()
 
-        user.refrestTokens.push({
+        user.refreshTokens.push({
             token: refreshToken,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            // expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         })
+        user.sessionExpiresAt = Date.now()
         await user.save()
         setAuthCookies(res, accessToken, refreshToken)
         res.status(200).json({
@@ -82,32 +83,38 @@ export async function handleUserLogin(req, res) {
  */
 export async function handleUserLogout(req, res) {
 
-    const accessToken = req.cookies?.access_token
-    const refreshToken = req.cookies?.refresh_token
+    try {
+        const accessToken = req.cookies?.access_token
+        const refreshToken = req.cookies?.refresh_token
 
-    if (!token) {
+        if (!accessToken && !refreshToken) {
+            return res.status(200).json({
+                success: true,
+                message: 'User already logged out'
+            })
+        }
+        if (accessToken) {
+            await TokenBlacklist.create({ token: accessToken })
+        }
+
+        await User.updateOne(
+            { 'refreshTokens.token': refreshToken },
+            {
+                // From the refreshTokens array, remove the object where token === refreshToken”
+                $pull:
+                    { refreshTokens: { token: refreshToken } }
+            }
+        )
+        res.clearCookie("access_token")
+        res.clearCookie("refresh_token")
+
         return res.status(200).json({
             success: true,
-            message: 'User already logged out'
+            message: "Logged out successfully"
         })
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
     }
-    await TokenBlacklist.create({ token: accessToken })
-
-    await User.updateOne(
-        { 'refrestTokens.token': refreshToken },
-        {
-            // From the refreshTokens array, remove the object where token === refreshToken”
-            $pull:
-                { refrestTokens: { token: refreshToken } }
-        }
-    )
-    res.clearCookie("access_token")
-    res.clearCookie("refresh_token")
-
-    return res.status(200).json({
-        success: true,
-        message: "Logged out successfully"
-    })
 }
 
 /**
@@ -124,40 +131,64 @@ export async function handleRefreshToken(req, res) {
     */
 
     const { refresh_token } = req.cookies
-
-    // 1. Verify refresh token
-    if (!refresh_token) {
-        return res.status(401).json({ success: false, message: "No refresh token" });
-    }
     try {
-        const decode_refresh_token = jwt.verify(refresh_token, process.env.REFRESH_TOKEN_SECRET)
-    } catch (error) {
-        return res.status(403).json({ success: false, message: 'Invalid refresh token' })
+        // 1. Verify refresh token
+        if (!refresh_token) {
+            return res.status(401).json({ success: false, message: "No refresh token" });
+        }
+        try {
+            jwt.verify(refresh_token, process.env.REFRESH_TOKEN_SECRET)
+        } catch (error) {
+            return res.status(403).json({ success: false, message: 'Invalid refresh token' })
+        }
+
+        // 2. Check if token exists in DB
+        const user = await User.findOne({
+            'refreshTokens.token': refresh_token
+        })
+        if (!user) {
+            // "Token reuse detected" ==> cuz, hum logout krty wqt refreshToken dlt kr rhy hen, if ksi k pas still token h to might be possible ==> stolen ho k resue ho rha
+            return res.status(403).json({ success: false, message: "Token reuse detected" });
+        }
+
+        // const tokenDoc = user.refreshTokens.find(
+        //     t => t.token === refresh_token
+        // )
+        // if (!tokenDoc || tokenDoc.expiresAt < new Date()) {
+        //     return res.status(403).json({
+        //         success: false,
+
+        //         message: 'Refresh token expired'
+        //     })
+        // }
+
+        if (user.sessionExpiresAt && user.sessionExpiresAt < new Date()) {
+            res.clearCookie("access_token")
+            res.clearCookie("refresh_token")
+
+            return res.status(403).json({
+                success: false,
+                message: "Session expired. Please login again.",
+            });
+        }
+
+        // 3. Delete old token (rotation)
+        user.refreshTokens = user.refreshTokens.filter(t => {
+            return t.token !== refresh_token
+        })
+
+        // 4. Issue new access + refresh token
+        const accessToken = generateAccessToken(user)
+        const { token: newRefreshToken } = generateRefreshToken()
+
+        user.refreshTokens.push({
+            token: newRefreshToken,
+            // expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        })
+        await user.save()
+        setAuthCookies(res, accessToken, newRefreshToken)
+        res.status(201).json({ message: "Token refreshed" });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
     }
-
-    // 2. Check if token exists in DB
-    const user = await User.findOne({
-        'refrestTokens.token': refresh_token
-    })
-    if (!user) {
-        // "Token reuse detected" ==> cuz, hum logout krty wqt refreshToken dlt kr rhy hen, if ksi k pas still token h to might be possible ==> stolen ho k resue ho rha
-        return res.status(403).json({ success: false, message: "Token reuse detected" });
-    }
-
-    // 3. Delete old token (rotation)
-    user.refrestTokens = user.refrestTokens.filter(tokens => {
-        tokens.token !== refresh_token
-    })
-
-    // 4. Issue new access + refresh token
-    const accessToken = generateAccessToken(user)
-    const { token: newRefreshToken } = generateRefreshToken()
-
-    user.refrestTokens.push({
-        token: newRefreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    })
-    await user.save()
-    setAuthCookies(res, accessToken, newRefreshToken)
-    res.status(201).json({ message: "Token refreshed" });
 }
