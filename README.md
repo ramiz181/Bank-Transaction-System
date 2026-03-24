@@ -22,7 +22,7 @@ transactions using:
 -   Ledger-based accounting
 -   Transaction-safe database operations
 -   Idempotent requests
--   Secure authentication
+-   Secure authentication (JWT + Session Control)
 
 The system ensures **consistent and reliable money transfers** between
 accounts.
@@ -34,8 +34,10 @@ accounts.
 ## User Authentication
 
 -   User registration and login
--   JWT based authentication
--   Secure cookies
+-   Access Token + Refresh Token architecture
+-   Token blacklist (secure logout)
+-   Session expiration handling
+-   HTTP-only cookies for secure storage
 
 ## Account Management
 
@@ -69,8 +71,9 @@ Instead of storing balances directly, balances are **derived from ledger
 entries**.
 
 Balance Formula:
-
+```js
 Balance = Sum(Credits) - Sum(Debits)
+```
 
 This ensures:
 
@@ -80,7 +83,7 @@ This ensures:
 
 ## MongoDB Aggregation Pipeline
 
-Account balances and transaction insights are computed using the MongoDB Aggregation Pipeline, rather than storing redundant data.
+Account balances and transaction insights are computed using the MongoDB Aggregation Pipeline.
 
 Example use cases:
 
@@ -136,7 +139,6 @@ This ensures:
 -  Real-time balance computation
 -  No redundant balance storage
 -  High data consistency
--  Powerful data querying and analytics
 
 ## MongoDB Transactions
 
@@ -152,8 +154,6 @@ This ensures that:
 -   Either the entire transaction succeeds
 -   Or everything rolls back
 
-------------------------------------------------------------------------
-
 ## Idempotency Keys
 
 To prevent **duplicate transactions**, an idempotency key is used.
@@ -162,6 +162,71 @@ Example use case:
 
 If a request is retried due to network failure, the same transaction
 will **not be processed twice**.
+
+------------------------------------------------------------------------
+# Authentication Architecture
+
+## Token Strategy
+
+This system uses:
+
+-   **Access Token (short-lived)** → authentication
+-   **Refresh Token (long-lived)** → session continuity
+
+## Login Flow
+
+1.  User logs in
+2.  Server generates:
+    -   Access Token
+    -   Refresh Token
+3.  Refresh token is stored in database
+4.  Tokens sent via **HTTP-only cookies**
+5.  Session expiry is set
+
+## Refresh Token Flow (Token Rotation)
+
+    1. Verify refresh token
+    2. Check if token exists in DB
+    3. Check session expiration
+    4. Remove old refresh token
+    5. Issue new access + refresh token
+
+### Key Security Features
+
+-   **Token Rotation** → prevents reuse attacks
+-   **Token Reuse Detection** → blocks stolen tokens
+
+## Logout Flow (Token Blacklisting)
+
+``` js
+await TokenBlacklist.create({ token: accessToken })
+```
+
+-   Access token is **blacklisted**
+-   Refresh token is **removed from DB**
+-   Cookies are cleared
+
+### Why Blacklist?
+
+JWT is stateless → cannot be revoked normally
+
+So we:
+
+-   Store token in blacklist
+-   Reject future requests using that token
+
+## Session Expiration
+
+``` js
+user.sessionExpiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000
+```
+
+Even if refresh token is valid, session can expire
+
+If session is expired:
+
+-   Tokens are cleared
+-   User must login again
 
 ------------------------------------------------------------------------
 
@@ -179,8 +244,9 @@ will **not be processed twice**.
 
 ## Authentication
 
--   JSON Web Tokens (JWT)
--   Cookie-based authentication
+-   JWT (Access + Refresh Tokens)
+-    Cookie-based authentication
+-    Token blacklist system
 
 ## Other Tools
 
@@ -192,9 +258,8 @@ will **not be processed twice**.
 
 # Future Improvements
 
--   Redis based idempotency key storage
+-   Redis for token blacklist & idempotency
 -   Transaction queue system
--   Webhooks for transaction events
 -   Fraud detection rules
 -   Rate limiting
 -   Audit logging

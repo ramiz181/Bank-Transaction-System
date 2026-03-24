@@ -10,7 +10,7 @@ const tokenBlacklistSchema = new mongoose.Schema({
 
 tokenBlacklistSchema.index({ createdAt: 1 }, {
     // timeToLive(TTL)
-    expireAfterSeconds: 60 * 60 * 24 * 2
+    expireAfterSeconds: 15 * 60
 })
 
 export const TokenBlacklist = mongoose.model('tokenBlacklist', tokenBlacklistSchema)

@@ -44,7 +44,7 @@ const userSchema = new mongoose.Schema({
     refreshTokens: [refreshTokenSchema],
     sessionExpiresAt: {
         type: Date,
-        default: () => Date.now() + 3 * 60 * 1000
+        default: () => Date.now() + 7 * 24 * 60 * 60 * 1000
     }
 }, { timestamps: true })
 

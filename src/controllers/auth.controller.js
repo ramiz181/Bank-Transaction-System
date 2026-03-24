@@ -66,7 +66,7 @@ export async function handleUserLogin(req, res) {
             token: refreshToken,
             // expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         })
-        user.sessionExpiresAt = Date.now()
+        user.sessionExpiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000
         await user.save()
         setAuthCookies(res, accessToken, refreshToken)
         res.status(200).json({
@@ -163,6 +163,10 @@ export async function handleRefreshToken(req, res) {
         // }
 
         if (user.sessionExpiresAt && user.sessionExpiresAt < new Date()) {
+            user.refreshTokens = user.refreshTokens.filter(
+                tokens => tokens.token !== refresh_token
+            )
+            await user.save()
             res.clearCookie("access_token")
             res.clearCookie("refresh_token")
 

@@ -11,6 +11,6 @@ export const setAuthCookies = (res, accessToken, refreshToken) => {
         httpOnly: true,
         sameSite: "lax",
         secure: false,
-        maxAge: 60 * 24 * 7 * 60 * 1000
+        maxAge: 7 * 24 * 60 * 60 * 1000
     })
 }
